@@ -1,14 +1,3 @@
-/*********************************************************************************/ 
-/* This server is a modified version of						 */
-/* https://www.ibm.com/docs/en/i/7.2?topic=designs-using-poll-instead-select     */
-/*********************************************************************************/
-
-
-
-
-
-
-
 // include all neccesary libraries for this script
 #include <stdio.h>
 #include <stdlib.h>
