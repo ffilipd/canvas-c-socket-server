@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
+// #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -49,16 +49,7 @@ int main(int argc, char *argv[])
     }
 
     // SET SOCKET TO BE NONBLOCKING
-    // "Input Output Controll"
-    // rc = ioctl(listen_sd, FIONBIO, (char *)&on);
-    // if (rc < 0)
-    // {
-    //     perror("ioctl() failed");
-    //     close(listen_sd);
-    //     exit(-1);
-    // }
-
-    // where socketfd is the socket you want to make non-blocking
+    // fcntl can be used instead of ioctl, in that case: include fcntl
     int status = fcntl(listen_sd, F_SETFL, fcntl(listen_sd, F_GETFL, 0) | O_NONBLOCK);
 
     if (status == -1)
@@ -150,6 +141,7 @@ int main(int argc, char *argv[])
                     // ADD NEW CONNECTION TO POLLFD STRUCTURE
                     printf("  New incoming connection - %d\n", new_sd);
                     fds[nfds].fd = new_sd;
+                    fds[nfds].events = 0;
                     fds[nfds].events = POLLIN;
                     nfds++;
 
@@ -165,7 +157,8 @@ int main(int argc, char *argv[])
                 do
                 {
                     // RECEIVE DATA ON THIS SOCKET UNTIL EWOULDBLOCK OCCURS
-                    rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+                    // MSG_DONTWAIT is a flag set so that server continues when there is no more data to read
+                    rc = recv(fds[i].fd, buffer, sizeof(buffer), MSG_DONTWAIT);
                     if (rc < 0)
                     {
                         if (errno != EWOULDBLOCK)
@@ -226,10 +219,10 @@ int main(int argc, char *argv[])
                 {
                     for (j = i; j < nfds; j++)
                     {
-                        fds[j].fd = fds[j + 1].fd; // rearrange array so w do not have empty bytes between open fds
+                        fds[j].fd = fds[j + 1].fd; // from the position where closed fd was removed, shift all fds to left
                     }
                     i--;
-                    nfds--;
+                    nfds--; //decrease number of open fds
                 }
             }
         }
