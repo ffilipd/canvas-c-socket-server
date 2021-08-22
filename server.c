@@ -1,13 +1,7 @@
-/*********************************************************************************/ 
+/*********************************************************************************/
 /* This server is a modified version of						 */
 /* https://www.ibm.com/docs/en/i/7.2?topic=designs-using-poll-instead-select     */
 /*********************************************************************************/
-
-
-
-
-
-
 
 // include all neccesary libraries for this script
 #include <stdio.h>
@@ -20,9 +14,9 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #define SERVER_PORT 4000 //specify the port that server is listening on
-
 
 int main(int argc, char *argv[])
 {
@@ -55,10 +49,21 @@ int main(int argc, char *argv[])
     }
 
     // SET SOCKET TO BE NONBLOCKING
-    rc = ioctl(listen_sd, FIONBIO, (char *)&on);
-    if (rc < 0)
+    // "Input Output Controll"
+    // rc = ioctl(listen_sd, FIONBIO, (char *)&on);
+    // if (rc < 0)
+    // {
+    //     perror("ioctl() failed");
+    //     close(listen_sd);
+    //     exit(-1);
+    // }
+
+    // where socketfd is the socket you want to make non-blocking
+    int status = fcntl(listen_sd, F_SETFL, fcntl(listen_sd, F_GETFL, 0) | O_NONBLOCK);
+
+    if (status == -1)
     {
-        perror("ioctl() failed");
+        perror("calling fcntl");
         close(listen_sd);
         exit(-1);
     }
@@ -68,7 +73,7 @@ int main(int argc, char *argv[])
     addr.sin6_family = AF_INET6;
     memcpy(&addr.sin6_addr, &in6addr_any, sizeof(in6addr_any));
     addr.sin6_port = htons(SERVER_PORT);
-    
+
     // BIND SOCKET
     rc = bind(listen_sd, (struct sockaddr *)&addr, sizeof(addr));
 
@@ -79,7 +84,7 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-    // listen to socket with a backlog of 32. 
+    // listen to socket with a backlog of 32.
     // backlog defines maximum queue length of pending connections.
     rc = listen(listen_sd, 32);
     if (rc < 0)
@@ -93,7 +98,7 @@ int main(int argc, char *argv[])
     memset(fds, 0, sizeof(fds)); // memset sets all bytes in fds[] to "0"
 
     // INITIALIZE LISTENING SOCKET
-    fds[0].fd = listen_sd; // set first file descriptor to the listening socket
+    fds[0].fd = listen_sd;  // set first file descriptor to the listening socket
     fds[0].events = POLLIN; // event set to listen for incoming data
 
     // WAIT FOR INCOMMING CONNECTIONS
@@ -101,7 +106,7 @@ int main(int argc, char *argv[])
     {
         printf("Waiting on poll()...\n");
         // POLL
-        // poll is set to listen to fds the argument (nfds) tells how many open fds ther is, (-1) is the timeout. 
+        // poll is set to listen to fds the argument (nfds) tells how many open fds ther is, (-1) is the timeout.
         // In this case, timeout is set to -1 which means, poll() will not timeout
         rc = poll(fds, nfds, -1);
 
@@ -119,7 +124,7 @@ int main(int argc, char *argv[])
             // FIND THE FD THAT RETURNED POLLIN AND CHECK IF LISTENING OR JUST ACTIVE
             // fds[i] has no activity
             if (fds[i].revents == 0)
-                continue; // start over with next 
+                continue; // start over with next
 
             // fds[i] is the fd that has activity
             if (fds[i].fd == listen_sd)
@@ -144,7 +149,7 @@ int main(int argc, char *argv[])
 
                     // ADD NEW CONNECTION TO POLLFD STRUCTURE
                     printf("  New incoming connection - %d\n", new_sd);
-                    fds[nfds].fd = new_sd;	
+                    fds[nfds].fd = new_sd;
                     fds[nfds].events = POLLIN;
                     nfds++;
 
@@ -160,7 +165,7 @@ int main(int argc, char *argv[])
                 do
                 {
                     // RECEIVE DATA ON THIS SOCKET UNTIL EWOULDBLOCK OCCURS
-                    rc = recv(fds[i].fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+                    rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
                     if (rc < 0)
                     {
                         if (errno != EWOULDBLOCK)
@@ -181,17 +186,16 @@ int main(int argc, char *argv[])
 
                     // DATA RECEIVED
                     len = rc;
-                    
-			printf("  %d bytes received from client: %d\n", len, fds[i].fd);
+
+                    printf("  %d bytes received from client: %d\n", len, fds[i].fd);
 
                     // SEND DATA BACK TO CLIENT
                     // Iterate through open fds
                     for (int i = 1; i < nfds; i++)
                     {
                         // Send "buffer" to "fd[i]"", "0" is a flag that tells the socket not to try to send while server is writing
-			// printf("sending data: %s back to client: %d\n", buffer,fds[i].fd); 
+                        // printf("sending data: %s back to client: %d\n", buffer,fds[i].fd);
                         rc = send(fds[i].fd, buffer, len, 0);
-
                     }
                     if (rc < 0)
                     {
@@ -232,7 +236,7 @@ int main(int argc, char *argv[])
 
     } while (end_server == 0); // Server is closing
 
-    // Clean up, close all open fds 
+    // Clean up, close all open fds
     for (i = 0; i < nfds; i++)
     {
         if (fds[i].fd >= 0)
