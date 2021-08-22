@@ -144,8 +144,7 @@ int main(int argc, char *argv[])
 
                     // ADD NEW CONNECTION TO POLLFD STRUCTURE
                     printf("  New incoming connection - %d\n", new_sd);
-                    fds[nfds].fd = new_sd;
-	            fds[nfds].events = 0;	
+                    fds[nfds].fd = new_sd;	
                     fds[nfds].events = POLLIN;
                     nfds++;
 
@@ -161,7 +160,7 @@ int main(int argc, char *argv[])
                 do
                 {
                     // RECEIVE DATA ON THIS SOCKET UNTIL EWOULDBLOCK OCCURS
-                    rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+                    rc = recv(fds[i].fd, buffer, sizeof(buffer), MSG_DONTWAIT);
                     if (rc < 0)
                     {
                         if (errno != EWOULDBLOCK)
