@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
                     // DATA RECEIVED
                     len = rc;
 
-                    printf("  %d bytes received from client: %d\n", len, fds[i].fd);
+                    // printf("  %d bytes received: %s,  from client: %d\n", len, buffer, fds[i].fd);
 
                     // SEND DATA BACK TO CLIENT
                     // Iterate through open fds

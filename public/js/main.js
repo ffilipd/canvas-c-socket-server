@@ -1,4 +1,4 @@
-const ws = new WebSocket('ws://127.0.0.1:3000');
+const ws = new WebSocket('ws://192.168.132.3:3000');
 
 ws.onopen = function () {
     console.log('CONNECT');
@@ -37,12 +37,27 @@ window.addEventListener('load', function () {
     }
 
     // Mouse button is clicked
+    // function putPoint(e) {
+    //     if (dragging) {
+    //         let data = e.offsetX + ',' + e.offsetY;
+    //         ws.send(data)
+    //     }
+    // }
+
     function putPoint(e) {
         if (dragging) {
-            let data = e.offsetX + ',' + e.offsetY;
+            let data = '';
+            if (e.clientX) {
+                data = (e.clientX + -10) + ',' + (e.clientY -30);
+            }
+            else {
+                data = e.offsetX + ',' + e.offsetY;
+            }
             ws.send(data)
         }
     }
+
+
     // Mouse is dragged with button down
     function engage(e) {
         dragging = true;
@@ -58,6 +73,18 @@ window.addEventListener('load', function () {
     canvas.addEventListener('mousedown', engage);
     canvas.addEventListener('mousemove', putPoint);
     canvas.addEventListener('mouseup', disengage);
+
+
+    function touchstart(event) { engage(event.touches[0]) }
+    function touchmove(event) { putPoint(event.touches[0]); event.preventDefault(); }
+    function touchend(event) { disengage(event.changedTouches[0]) }
+
+    canvas.addEventListener('touchstart', touchstart, false);
+    canvas.addEventListener('touchmove', touchmove, false);
+    canvas.addEventListener('touchend', touchend, false);
+
+
+
 
     // Reload page to reset canvas
     document.getElementById('resetbtn').addEventListener('click', function () {
@@ -81,52 +108,4 @@ window.addEventListener('load', function () {
 
     };
 
-    // Set up touch events for mobile, etc
-    canvas.addEventListener("touchstart", function (e) {
-        mousePos = getTouchPos(canvas, e);
-        var touch = e.touches[0];
-        var mouseEvent = new MouseEvent("mousedown", {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
-    }, false);
-    canvas.addEventListener("touchend", function (e) {
-        var mouseEvent = new MouseEvent("mouseup", {});
-        canvas.dispatchEvent(mouseEvent);
-    }, false);
-    canvas.addEventListener("touchmove", function (e) {
-        var touch = e.touches[0];
-        var mouseEvent = new MouseEvent("mousemove", {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
-    }, false);
-
-    // Get the position of a touch relative to the canvas
-    function getTouchPos(canvasDom, touchEvent) {
-        var rect = canvasDom.getBoundingClientRect();
-        return {
-            x: touchEvent.touches[0].clientX - rect.left,
-            y: touchEvent.touches[0].clientY - rect.top
-        };
-    }
-
-    // Prevent scrolling when touching the canvas
-    document.body.addEventListener("touchstart", function (e) {
-        if (e.target == canvas) {
-            e.preventDefault();
-        }
-    }, false);
-    document.body.addEventListener("touchend", function (e) {
-        if (e.target == canvas) {
-            e.preventDefault();
-        }
-    }, false);
-    document.body.addEventListener("touchmove", function (e) {
-        if (e.target == canvas) {
-            e.preventDefault();
-        }
-    }, false);
 })
